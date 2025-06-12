@@ -6,20 +6,18 @@
   <title>Donut SMP Live Dashboard</title>
 
   <!-- Tailwind CSS via Play CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.tailwindcss.com"></script> <!--  [oai_citation_attribution:7‡tailwindcss.com](https://tailwindcss.com/docs/installation/play-cdn?utm_source=chatgpt.com) -->
 
   <!-- Chart.js via CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-  <!-- Custom Glassmorphism & Neumorphism Styles -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!--  [oai_citation_attribution:8‡jsdelivr.com](https://www.jsdelivr.com/package/npm/chart.js?path=dist&utm_source=chatgpt.com) -->
+  
+  <!-- Glassmorphism & Neumorphism Styles -->
   <style>
-    /* Frosted-glass cards */
     .glass-card {
       @apply bg-white/30 rounded-2xl shadow-xl p-6;
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
     }
-    /* Soft, tactile buttons */
     .neumo-btn {
       @apply bg-white p-3 rounded-full inline-flex items-center justify-center;
       box-shadow:
@@ -35,25 +33,22 @@
     }
   </style>
 </head>
-
 <body class="min-h-screen bg-gradient-to-br from-gray-100 via-gray-50 to-white flex items-center justify-center p-4">
   <div class="w-full max-w-3xl space-y-8">
     
     <!-- Header -->
     <header class="text-center">
       <h1 class="text-4xl font-bold text-gray-800 mb-2">Donut SMP Dashboard</h1>
-      <button id="refresh-all" class="neumo-btn">
-        🔄
-      </button>
+      <button id="refresh-all" class="neumo-btn">🔄</button>
     </header>
 
     <!-- Counters -->
     <section class="grid grid-cols-2 gap-6">
-      <div class="glass-card flex flex-col items-start">
+      <div class="glass-card flex flex-col">
         <p class="text-sm font-medium text-gray-600 mb-1">Players Online</p>
         <p id="players-count" class="text-5xl font-extrabold text-gray-900">--</p>
       </div>
-      <div class="glass-card flex flex-col items-start">
+      <div class="glass-card flex flex-col">
         <p class="text-sm font-medium text-gray-600 mb-1">Total Economy</p>
         <p id="economy-total" class="text-5xl font-extrabold text-gray-900">--</p>
       </div>
@@ -81,38 +76,38 @@
             </tr>
           </thead>
           <tbody id="auction-table-body" class="text-gray-800">
-            <tr>
-              <td colspan="3" class="px-4 py-2 text-center">Loading…</td>
-            </tr>
+            <tr><td colspan="3" class="px-4 py-2 text-center">Loading…</td></tr>
           </tbody>
         </table>
       </div>
     </section>
+
   </div>
 
-  <!-- JavaScript Logic -->
   <script>
-    /* ─── Configuration ───────────────────────────────────── */
-    const API_BASE = "https://api.donutsmp.net";
-    const IGN      = "cooolllgammerr";
+    // ─── Configuration ─────────────────────────────────────
+    const API_BASE = "https://api.donutsmp.net/v1/auction/list";
+    const IGN      = "cooolllgammerr";                // ← Replace with your IGN
     const API_KEY  = "08a9fb28c98b4d83acc76d251b26ccf0";
 
-    /* ─── Fetch Helper ────────────────────────────────────── */
-    async function fetchJSON(path) {
-      const res = await fetch(API_BASE + path, {
+    // ─── Fetch Helper ─────────────────────────────────────
+    async function fetchJSON(url) {
+      const res = await fetch(url, {
         headers: { "Authorization": `Bearer ${API_KEY}` }
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);  //  [oai_citation_attribution:9‡developer.mozilla.org](https://developer.mozilla.org/en-US/docs/Web/API/Response?utm_source=chatgpt.com)
       return res.json();
     }
 
-    /* ─── 1. Update Counters ──────────────────────────────── */
+    // ─── 1. Update Counters ────────────────────────────────
     async function updateCounters() {
       try {
-        const p = await fetchJSON("/players/online");
-        document.getElementById("players-count").textContent = p.count;
-        const e = await fetchJSON("/economy/total");
-        document.getElementById("economy-total").textContent = e.total.toLocaleString();
+        const [pData, eData] = await Promise.all([
+          fetchJSON("https://api.donutsmp.net/players/online"),  //  [oai_citation_attribution:10‡api.donutsmp.net](https://api.donutsmp.net/index.html?utm_source=chatgpt.com)
+          fetchJSON("https://api.donutsmp.net/economy/total")    //  [oai_citation_attribution:11‡api.donutsmp.net](https://api.donutsmp.net/index.html?utm_source=chatgpt.com)
+        ]);
+        document.getElementById("players-count").textContent = pData.count;
+        document.getElementById("economy-total").textContent = eData.total.toLocaleString();
       } catch (err) {
         console.error("Counters error:", err);
       }
@@ -120,39 +115,18 @@
     updateCounters();
     setInterval(updateCounters, 60000);
 
-    /* ─── 2. Players Online Chart ─────────────────────────── */
+    // ─── 2. Players Online Chart ───────────────────────────
     const ctx = document.getElementById("playerChart").getContext("2d");
-    const dataObj = { labels: [], datasets: [{
-      label: "Players",
-      data: [],
-      borderColor: "#3b82f6",
-      borderWidth: 3,
-      tension: 0.4,
-      pointRadius: 0
-    }]};
-    const chart = new Chart(ctx, {
-      type: "line",
-      data: dataObj,
-      options: {
-        responsive: true,
-        scales: {
-          x: { grid: { display: false }, ticks: { color: "#4b5563" } },
-          y: { beginAtZero: true, grid: { color: "#e5e7eb" }, ticks: { color: "#4b5563" } }
-        },
-        plugins: { legend: { display: false } }
-      }
-    });
+    const chartData = { labels: [], datasets: [{ data: [], borderColor: "#3b82f6", borderWidth: 3, tension: 0.4, pointRadius: 0 }]};
+    const playerChart = new Chart(ctx, { type: "line", data: chartData, options: { responsive: true, scales: { x: { grid: { display: false }, ticks: { color: "#4b5563" }}, y: { beginAtZero: true, grid: { color: "#e5e7eb" }, ticks: { color: "#4b5563" }}}}});
     async function pollChart() {
       try {
-        const d = await fetchJSON("/players/online");
-        const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-        dataObj.labels.push(now);
-        dataObj.datasets[0].data.push(d.count);
-        if (dataObj.labels.length > 30) {
-          dataObj.labels.shift();
-          dataObj.datasets[0].data.shift();
-        }
-        chart.update();
+        const d = await fetchJSON("https://api.donutsmp.net/players/online");  //  [oai_citation_attribution:12‡api.donutsmp.net](https://api.donutsmp.net/index.html?utm_source=chatgpt.com)
+        const time = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+        chartData.labels.push(time);
+        chartData.datasets[0].data.push(d.count);
+        if (chartData.labels.length > 30) { chartData.labels.shift(); chartData.datasets[0].data.shift(); }
+        playerChart.update();  //  [oai_citation_attribution:13‡chartjs.org](https://www.chartjs.org/docs/latest/getting-started/?utm_source=chatgpt.com)
       } catch (err) {
         console.error("Chart error:", err);
       }
@@ -160,38 +134,42 @@
     pollChart();
     setInterval(pollChart, 120000);
 
-    /* ─── 3. Dropper Auctions Table ───────────────────────── */
+    // ─── 3. Paginated Auction Fetch & Display ────────────
     async function updateAuctions() {
+      const tbody = document.getElementById("auction-table-body");
       try {
-        const { auctions } = await fetchJSON(`/auction?seller=${IGN}&page=1`);
-        const drops = auctions.filter(a => a.item.toLowerCase() === "dropper");
-        const tbody = document.getElementById("auction-table-body");
-        if (!drops.length) {
-          tbody.innerHTML = `<tr><td colspan="3" class="px-4 py-2 text-center text-gray-500">No Droppers</td></tr>`;
-          return;
+        let page = 1, allAuctions = [], endedAuctions = [];
+        while (true) {
+          const data = await fetchJSON(`${API_BASE}/${page}`);                //  [oai_citation_attribution:14‡api.donutsmp.net](https://api.donutsmp.net/index.html?utm_source=chatgpt.com)
+          if (!data.auctions.length) break;                                  // stop on empty
+          allAuctions.push(...data.auctions, ...data.ended);                 // collect both lists
+          page++;
         }
-        tbody.innerHTML = drops.map(a => {
-          const status = a.buyer ? "Sold" : "Active";
-          return `
-            <tr class="border-b border-gray-200">
-              <td class="px-4 py-2">${a.id}</td>
-              <td class="px-4 py-2">${a.price.toLocaleString()}</td>
-              <td class="px-4 py-2">${status}</td>
-            </tr>`;
-        }).join("");
+        // Filter for "Dropper" items only
+        const droppers = allAuctions.filter(a => a.item.toLowerCase() === "dropper");  //  [oai_citation_attribution:15‡developer.mozilla.org](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/filter?utm_source=chatgpt.com)
+        if (!droppers.length) {
+          tbody.innerHTML = `<tr><td colspan="3" class="px-4 py-2 text-center text-gray-500">No Droppers</td></tr>`;
+        } else {
+          tbody.innerHTML = droppers.map(a => {
+            const status = a.buyer ? "Sold" : "Active";
+            return `
+              <tr class="border-b border-gray-200">
+                <td class="px-4 py-2">${a.id}</td>
+                <td class="px-4 py-2">${a.price.toLocaleString()}</td>
+                <td class="px-4 py-2">${status}</td>
+              </tr>`;
+          }).join("");
+        }
       } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="3" class="px-4 py-2 text-center text-red-500">Error loading auctions</td></tr>`;
         console.error("Auctions error:", err);
       }
     }
     updateAuctions();
     setInterval(updateAuctions, 90000);
 
-    /* ─── 4. Manual Refresh Buttons ───────────────────────── */
-    document.getElementById("refresh-all").onclick = () => {
-      updateCounters();
-      pollChart();
-      updateAuctions();
-    };
+    // ─── 4. Manual Refresh Buttons ─────────────────────────
+    document.getElementById("refresh-all").onclick = () => { updateCounters(); pollChart(); updateAuctions(); };
     document.getElementById("refresh-auctions").onclick = updateAuctions;
   </script>
 </body>
