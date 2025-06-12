@@ -13,13 +13,20 @@
   
   <!-- Glassmorphism & Neumorphism Styles -->
   <style>
+    body {
+      padding-top: env(safe-area-inset-top);
+      padding-bottom: env(safe-area-inset-bottom);
+      margin: 0;
+    }
     .glass-card {
-      @apply bg-white/30 rounded-2xl shadow-xl p-6;
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
+      @apply bg-white/30 rounded-3xl shadow-xl p-6;
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
     }
     .neumo-btn {
       @apply bg-white p-3 rounded-full inline-flex items-center justify-center;
+      width: 56px;
+      height: 56px;
       box-shadow:
         6px 6px 16px rgba(0,0,0,0.08),
        -6px -6px 16px rgba(255,255,255,0.7);
@@ -44,24 +51,24 @@
 
     <!-- Counters -->
     <section class="grid grid-cols-2 gap-6">
-      <div class="glass-card flex flex-col bg-blue-200/40">
+      <div class="glass-card flex flex-col rounded-3xl bg-blue-100/20">
         <p class="text-sm font-medium text-gray-600 mb-1">Players Online</p>
         <p id="players-count" class="text-5xl font-extrabold text-gray-900">--</p>
       </div>
-      <div class="glass-card flex flex-col bg-yellow-200/40">
+      <div class="glass-card flex flex-col rounded-3xl bg-yellow-100/20">
         <p class="text-sm font-medium text-gray-600 mb-1">Total Economy</p>
         <p id="economy-total" class="text-5xl font-extrabold text-gray-900">--</p>
       </div>
     </section>
 
     <!-- Chart -->
-    <section class="glass-card bg-purple-200/40">
+    <section class="glass-card rounded-3xl bg-purple-100/20">
       <p class="text-lg font-medium text-gray-700 mb-4">Players Online Over Time</p>
       <canvas id="playerChart" height="160"></canvas>
     </section>
 
     <!-- Auction Table -->
-    <section class="glass-card bg-green-200/40">
+    <section class="glass-card rounded-3xl bg-green-100/20">
       <div class="flex items-center justify-between mb-4">
         <h2 class="text-2xl font-semibold text-gray-800">My Dropper Auctions</h2>
         <button id="refresh-auctions" class="neumo-btn text-lg">⟳</button>
@@ -90,6 +97,9 @@
     const IGN      = "cooolllgammerr";                // ← Replace with your IGN
     const API_KEY  = "08a9fb28c98b4d83acc76d251b26ccf0";
 
+    const COUNTER_PLAYERS_URL = "https://api.donutsmp.net/v1/players/online";
+    const COUNTER_ECONOMY_URL = "https://api.donutsmp.net/v1/economy/total";
+
     // ─── Fetch Helper ─────────────────────────────────────
     async function fetchJSON(url) {
       const fetchUrl = "https://cors-anywhere.herokuapp.com/" + url;
@@ -104,8 +114,8 @@
     async function updateCounters() {
       try {
         const [pData, eData] = await Promise.all([
-          fetchJSON("https://api.donutsmp.net/players/online"),  //  [oai_citation_attribution:10‡api.donutsmp.net](https://api.donutsmp.net/index.html?utm_source=chatgpt.com)
-          fetchJSON("https://api.donutsmp.net/economy/total")    //  [oai_citation_attribution:11‡api.donutsmp.net](https://api.donutsmp.net/index.html?utm_source=chatgpt.com)
+          fetchJSON(COUNTER_PLAYERS_URL),
+          fetchJSON(COUNTER_ECONOMY_URL)
         ]);
         document.getElementById("players-count").textContent = pData.count;
         document.getElementById("economy-total").textContent = eData.total.toLocaleString();
@@ -118,11 +128,11 @@
 
     // ─── 2. Players Online Chart ───────────────────────────
     const ctx = document.getElementById("playerChart").getContext("2d");
-    const chartData = { labels: [], datasets: [{ data: [], borderColor: "#3b82f6", borderWidth: 3, tension: 0.4, pointRadius: 0 }]};
-    const playerChart = new Chart(ctx, { type: "line", data: chartData, options: { responsive: true, scales: { x: { grid: { display: false }, ticks: { color: "#4b5563" }}, y: { beginAtZero: true, grid: { color: "#e5e7eb" }, ticks: { color: "#4b5563" }}}}});
+    const chartData = { labels: [], datasets: [{ data: [], borderColor: "#3b82f6", backgroundColor: "rgba(59,130,246,0.2)", borderWidth: 3, tension: 0.4, pointRadius: 0 }]};
+    const playerChart = new Chart(ctx, { type: "line", data: chartData, options: { responsive: true, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false }, ticks: { color: "#4b5563" }}, y: { beginAtZero: true, grid: { color: "#e5e7eb" }, ticks: { color: "#4b5563" }}}}});
     async function pollChart() {
       try {
-        const d = await fetchJSON("https://api.donutsmp.net/players/online");  //  [oai_citation_attribution:12‡api.donutsmp.net](https://api.donutsmp.net/index.html?utm_source=chatgpt.com)
+        const d = await fetchJSON(COUNTER_PLAYERS_URL);
         const time = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
         chartData.labels.push(time);
         chartData.datasets[0].data.push(d.count);
