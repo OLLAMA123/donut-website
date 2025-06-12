@@ -115,20 +115,20 @@
       <canvas id="playerChart" height="160"></canvas>
     </section>
 
-    <!-- Auction Table -->
+    <!-- Dropper Listings Table -->
     <section class="glass-card rounded-3xl bg-green-100/20">
       <div class="flex items-center justify-between mb-4">
-        <h2 class="text-2xl font-semibold text-gray-800">My Dropper Auctions</h2>
+        <h2 class="text-2xl font-semibold text-gray-800">Current Dropper Listings</h2>
         <button id="refresh-auctions" class="neumo-btn text-lg">⟳</button>
       </div>
-      <input id="auction-search" type="text" placeholder="Search Auctions..." class="w-full mb-4 p-2 rounded-lg bg-white/60 text-gray-800 focus:outline-none" />
+      <input id="auction-search" type="text" placeholder="Search Dropper Listings..." class="w-full mb-4 p-2 rounded-lg bg-white/60 text-gray-800 focus:outline-none" />
       <div class="overflow-x-auto">
         <table class="w-full table-auto text-left">
           <thead>
             <tr class="text-gray-600 uppercase text-sm">
               <th class="px-4 py-2">Auction ID</th>
               <th class="px-4 py-2">Price</th>
-              <th class="px-4 py-2">Status</th>
+              <th class="px-4 py-2">Time Left</th>
             </tr>
           </thead>
           <tbody id="auction-table-body" class="text-gray-800">
@@ -209,8 +209,8 @@
         let droppersTotal = 0;
         while (true) {
           const data = await fetchJSON(`${API_BASE}/${page}`);
-          if (!data.auctions.length) break;
-          droppersTotal += data.auctions.filter(a => a.item.toLowerCase() === "dropper").length;
+          if (!data.result.length) break;
+          droppersTotal += data.result.filter(a => a.item.id.toLowerCase() === "dropper").length;
           page++;
         }
         document.getElementById("droppers-count").textContent = droppersTotal;
@@ -246,28 +246,22 @@
       try {
         let page = 1, allAuctions = [], endedAuctions = [];
         while (true) {
-          const data = await fetchJSON(`${API_BASE}/${page}`);                //  [oai_citation_attribution:14‡api.donutsmp.net](https://api.donutsmp.net/index.html?utm_source=chatgpt.com)
-          if (!data.auctions.length) break;                                  // stop on empty
-          allAuctions.push(...data.auctions, ...data.ended);                 // collect both lists
+          const data = await fetchJSON(`${API_BASE}/${page}`);
+          if (!data.result.length) break;
+          allAuctions.push(...data.result);
           page++;
         }
         // Filter for "Dropper" items only
-        const droppers = allAuctions.filter(a => a.item.toLowerCase() === "dropper");  //  [oai_citation_attribution:15‡developer.mozilla.org](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/filter?utm_source=chatgpt.com)
+        const droppers = allAuctions.filter(a => a.item.id.toLowerCase() === "dropper");
         if (!droppers.length) {
           tbody.innerHTML = `<tr><td colspan="3" class="px-4 py-2 text-center text-gray-500">No Droppers</td></tr>`;
         } else {
           tbody.innerHTML = droppers.map(a => {
-            const status = a.buyer ? "Sold" : "Active";
-            const badgeClass = a.buyer 
-              ? "bg-red-100 text-red-800" 
-              : "bg-green-100 text-green-800";
             return `
               <tr class="border-b border-gray-200">
                 <td class="px-4 py-2">${a.id}</td>
                 <td class="px-4 py-2">${a.price.toLocaleString()}</td>
-                <td class="px-4 py-2">
-                  <span class="${badgeClass} px-2 py-1 rounded-full text-sm">${status}</span>
-                </td>
+                <td class="px-4 py-2">${a.time_left}</td>
               </tr>`;
           }).join("");
         }
@@ -289,8 +283,8 @@
       const body = document.getElementById("leaderboard-body");
       body.innerHTML = `<tr><td colspan="3" class="px-4 py-2 text-center">Loading…</td></tr>`;
       try {
-        const data = await fetchJSON(LB_BASE + type);
-        body.innerHTML = data.map((entry, idx) => `
+        const data = await fetchJSON(`${LB_BASE}${type}/1`);
+        body.innerHTML = data.result.map((entry, idx) => `
           <tr class="border-b border-gray-200">
             <td class="px-4 py-2">${idx + 1}</td>
             <td class="px-4 py-2">${entry.ign || entry.name || entry.player}</td>
@@ -330,12 +324,10 @@
     async function calculateTotalEconomy() {
       console.log('Fetching total economy...');
       try {
-        const response = await axios.get(
-          "https://api.donutsmp.net/v1/economy/total",
-          { headers: { Authorization: `Bearer ${API_KEY}` } }
-        );
-        const totalEconomy = response.data.total;
+        const data = await fetchJSON(COUNTER_ECONOMY_URL);
+        const totalEconomy = data.total || data.result?.total;
         console.log(`Total DonutSMP Economy: $${totalEconomy.toLocaleString()}`);
+        document.getElementById('economy-total').textContent = totalEconomy.toLocaleString();
         return totalEconomy;
       } catch (error) {
         console.error(`Error fetching economy: ${error.message}`);
