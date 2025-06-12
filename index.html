@@ -38,30 +38,30 @@
     
     <!-- Header -->
     <header class="text-center">
-      <h1 class="text-4xl font-bold text-gray-800 mb-2">Donut SMP Dashboard</h1>
+      <h1 class="text-4xl font-bold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-indigo-500">Donut SMP Dashboard</h1>
       <button id="refresh-all" class="neumo-btn">🔄</button>
     </header>
 
     <!-- Counters -->
     <section class="grid grid-cols-2 gap-6">
-      <div class="glass-card flex flex-col">
+      <div class="glass-card flex flex-col bg-blue-200/40">
         <p class="text-sm font-medium text-gray-600 mb-1">Players Online</p>
         <p id="players-count" class="text-5xl font-extrabold text-gray-900">--</p>
       </div>
-      <div class="glass-card flex flex-col">
+      <div class="glass-card flex flex-col bg-yellow-200/40">
         <p class="text-sm font-medium text-gray-600 mb-1">Total Economy</p>
         <p id="economy-total" class="text-5xl font-extrabold text-gray-900">--</p>
       </div>
     </section>
 
     <!-- Chart -->
-    <section class="glass-card">
+    <section class="glass-card bg-purple-200/40">
       <p class="text-lg font-medium text-gray-700 mb-4">Players Online Over Time</p>
       <canvas id="playerChart" height="160"></canvas>
     </section>
 
     <!-- Auction Table -->
-    <section class="glass-card">
+    <section class="glass-card bg-green-200/40">
       <div class="flex items-center justify-between mb-4">
         <h2 class="text-2xl font-semibold text-gray-800">My Dropper Auctions</h2>
         <button id="refresh-auctions" class="neumo-btn text-lg">⟳</button>
@@ -92,7 +92,8 @@
 
     // ─── Fetch Helper ─────────────────────────────────────
     async function fetchJSON(url) {
-      const res = await fetch(url, {
+      const fetchUrl = "https://cors-anywhere.herokuapp.com/" + url;
+      const res = await fetch(fetchUrl, {
         headers: { "Authorization": `Bearer ${API_KEY}` }
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);  //  [oai_citation_attribution:9‡developer.mozilla.org](https://developer.mozilla.org/en-US/docs/Web/API/Response?utm_source=chatgpt.com)
@@ -152,11 +153,16 @@
         } else {
           tbody.innerHTML = droppers.map(a => {
             const status = a.buyer ? "Sold" : "Active";
+            const badgeClass = a.buyer 
+              ? "bg-red-100 text-red-800" 
+              : "bg-green-100 text-green-800";
             return `
               <tr class="border-b border-gray-200">
                 <td class="px-4 py-2">${a.id}</td>
                 <td class="px-4 py-2">${a.price.toLocaleString()}</td>
-                <td class="px-4 py-2">${status}</td>
+                <td class="px-4 py-2">
+                  <span class="${badgeClass} px-2 py-1 rounded-full text-sm">${status}</span>
+                </td>
               </tr>`;
           }).join("");
         }
