@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Donut SMP Live Dashboard</title>
+
+  <!-- Tailwind CSS via Play CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Chart.js via CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Custom Glassmorphism & Neumorphism Styles -->
+  <style>
+    /* Frosted-glass cards */
+    .glass-card {
+      @apply bg-white/30 rounded-2xl shadow-xl p-6;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+    }
+    /* Soft, tactile buttons */
+    .neumo-btn {
+      @apply bg-white p-3 rounded-full inline-flex items-center justify-center;
+      box-shadow:
+        6px 6px 16px rgba(0,0,0,0.08),
+       -6px -6px 16px rgba(255,255,255,0.7);
+      transition: transform .15s, box-shadow .15s;
+    }
+    .neumo-btn:active {
+      transform: scale(0.96);
+      box-shadow:
+        inset 4px 4px 12px rgba(0,0,0,0.06),
+        inset -4px -4px 12px rgba(255,255,255,0.7);
+    }
+  </style>
+</head>
+
+<body class="min-h-screen bg-gradient-to-br from-gray-100 via-gray-50 to-white flex items-center justify-center p-4">
+  <div class="w-full max-w-3xl space-y-8">
+    
+    <!-- Header -->
+    <header class="text-center">
+      <h1 class="text-4xl font-bold text-gray-800 mb-2">Donut SMP Dashboard</h1>
+      <button id="refresh-all" class="neumo-btn">
+        🔄
+      </button>
+    </header>
+
+    <!-- Counters -->
+    <section class="grid grid-cols-2 gap-6">
+      <div class="glass-card flex flex-col items-start">
+        <p class="text-sm font-medium text-gray-600 mb-1">Players Online</p>
+        <p id="players-count" class="text-5xl font-extrabold text-gray-900">--</p>
+      </div>
+      <div class="glass-card flex flex-col items-start">
+        <p class="text-sm font-medium text-gray-600 mb-1">Total Economy</p>
+        <p id="economy-total" class="text-5xl font-extrabold text-gray-900">--</p>
+      </div>
+    </section>
+
+    <!-- Chart -->
+    <section class="glass-card">
+      <p class="text-lg font-medium text-gray-700 mb-4">Players Online Over Time</p>
+      <canvas id="playerChart" height="160"></canvas>
+    </section>
+
+    <!-- Auction Table -->
+    <section class="glass-card">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-2xl font-semibold text-gray-800">My Dropper Auctions</h2>
+        <button id="refresh-auctions" class="neumo-btn text-lg">⟳</button>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full table-auto text-left">
+          <thead>
+            <tr class="text-gray-600 uppercase text-sm">
+              <th class="px-4 py-2">Auction ID</th>
+              <th class="px-4 py-2">Price</th>
+              <th class="px-4 py-2">Status</th>
+            </tr>
+          </thead>
+          <tbody id="auction-table-body" class="text-gray-800">
+            <tr>
+              <td colspan="3" class="px-4 py-2 text-center">Loading…</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <!-- JavaScript Logic -->
+  <script>
+    /* ─── Configuration ───────────────────────────────────── */
+    const API_BASE = "https://api.donutsmp.net";
+    const IGN      = "cooolllgammerr";
+    const API_KEY  = "08a9fb28c98b4d83acc76d251b26ccf0";
+
+    /* ─── Fetch Helper ────────────────────────────────────── */
+    async function fetchJSON(path) {
+      const res = await fetch(API_BASE + path, {
+        headers: { "Authorization": `Bearer ${API_KEY}` }
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      return res.json();
+    }
+
+    /* ─── 1. Update Counters ──────────────────────────────── */
+    async function updateCounters() {
+      try {
+        const p = await fetchJSON("/players/online");
+        document.getElementById("players-count").textContent = p.count;
+        const e = await fetchJSON("/economy/total");
+        document.getElementById("economy-total").textContent = e.total.toLocaleString();
+      } catch (err) {
+        console.error("Counters error:", err);
+      }
+    }
+    updateCounters();
+    setInterval(updateCounters, 60000);
+
+    /* ─── 2. Players Online Chart ─────────────────────────── */
+    const ctx = document.getElementById("playerChart").getContext("2d");
+    const dataObj = { labels: [], datasets: [{
+      label: "Players",
+      data: [],
+      borderColor: "#3b82f6",
+      borderWidth: 3,
+      tension: 0.4,
+      pointRadius: 0
+    }]};
+    const chart = new Chart(ctx, {
+      type: "line",
+      data: dataObj,
+      options: {
+        responsive: true,
+        scales: {
+          x: { grid: { display: false }, ticks: { color: "#4b5563" } },
+          y: { beginAtZero: true, grid: { color: "#e5e7eb" }, ticks: { color: "#4b5563" } }
+        },
+        plugins: { legend: { display: false } }
+      }
+    });
+    async function pollChart() {
+      try {
+        const d = await fetchJSON("/players/online");
+        const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        dataObj.labels.push(now);
+        dataObj.datasets[0].data.push(d.count);
+        if (dataObj.labels.length > 30) {
+          dataObj.labels.shift();
+          dataObj.datasets[0].data.shift();
+        }
+        chart.update();
+      } catch (err) {
+        console.error("Chart error:", err);
+      }
+    }
+    pollChart();
+    setInterval(pollChart, 120000);
+
+    /* ─── 3. Dropper Auctions Table ───────────────────────── */
+    async function updateAuctions() {
+      try {
+        const { auctions } = await fetchJSON(`/auction?seller=${IGN}&page=1`);
+        const drops = auctions.filter(a => a.item.toLowerCase() === "dropper");
+        const tbody = document.getElementById("auction-table-body");
+        if (!drops.length) {
+          tbody.innerHTML = `<tr><td colspan="3" class="px-4 py-2 text-center text-gray-500">No Droppers</td></tr>`;
+          return;
+        }
+        tbody.innerHTML = drops.map(a => {
+          const status = a.buyer ? "Sold" : "Active";
+          return `
+            <tr class="border-b border-gray-200">
+              <td class="px-4 py-2">${a.id}</td>
+              <td class="px-4 py-2">${a.price.toLocaleString()}</td>
+              <td class="px-4 py-2">${status}</td>
+            </tr>`;
+        }).join("");
+      } catch (err) {
+        console.error("Auctions error:", err);
+      }
+    }
+    updateAuctions();
+    setInterval(updateAuctions, 90000);
+
+    /* ─── 4. Manual Refresh Buttons ───────────────────────── */
+    document.getElementById("refresh-all").onclick = () => {
+      updateCounters();
+      pollChart();
+      updateAuctions();
+    };
+    document.getElementById("refresh-auctions").onclick = updateAuctions;
+  </script>
+</body>
+</html>
