@@ -7,6 +7,12 @@
 
   <!-- Tailwind CSS via Play CDN -->
   <script src="https://cdn.tailwindcss.com"></script> <!--  [oai_citation_attribution:7‡tailwindcss.com](https://tailwindcss.com/docs/installation/play-cdn?utm_source=chatgpt.com) -->
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: { extend: {} },
+    }
+  </script>
 
   <!-- Chart.js via CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!--  [oai_citation_attribution:8‡jsdelivr.com](https://www.jsdelivr.com/package/npm/chart.js?path=dist&utm_source=chatgpt.com) -->
@@ -38,19 +44,57 @@
         inset 4px 4px 12px rgba(0,0,0,0.06),
         inset -4px -4px 12px rgba(255,255,255,0.7);
     }
+    /* Interactive transitions */
+    .glass-card {
+      transition: transform 0.3s ease, background-color 0.3s ease;
+    }
+    .glass-card:hover {
+      transform: translateY(-8px);
+      background-color: rgba(255, 255, 255, 0.35);
+    }
+    tbody tr {
+      transition: background-color 0.2s ease, transform 0.2s ease;
+    }
+    tbody tr:hover {
+      transform: translateX(4px);
+      background-color: rgba(255,255,255,0.2);
+    }
+
+    /* Button pulse animation */
+    @keyframes btn-pulse {
+      0% {
+        transform: scale(1);
+        box-shadow: 6px 6px 16px rgba(0,0,0,0.08), -6px -6px 16px rgba(255,255,255,0.7);
+      }
+      50% {
+        transform: scale(1.08);
+        box-shadow: 8px 8px 24px rgba(0,0,0,0.1), -8px -8px 24px rgba(255,255,255,0.8);
+      }
+      100% {
+        transform: scale(1);
+        box-shadow: 6px 6px 16px rgba(0,0,0,0.08), -6px -6px 16px rgba(255,255,255,0.7);
+      }
+    }
+
+    .neumo-btn:hover {
+      animation: btn-pulse 1.5s ease-in-out infinite;
+    }
   </style>
 </head>
-<body class="min-h-screen bg-gradient-to-br from-gray-100 via-gray-50 to-white flex items-center justify-center p-4">
+<body class="min-h-screen bg-gradient-to-br from-gray-100 via-gray-50 to-white dark:bg-gray-900 dark:bg-gradient-to-br dark:from-gray-800 dark:via-gray-700 dark:to-gray-900 flex items-center justify-center p-4">
   <div class="w-full max-w-3xl space-y-8">
     
     <!-- Header -->
     <header class="text-center">
       <h1 class="text-4xl font-bold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-indigo-500">Donut SMP Dashboard</h1>
-      <button id="refresh-all" class="neumo-btn">🔄</button>
+      <div class="flex justify-center space-x-4">
+        <button id="refresh-all" class="neumo-btn" title="Refresh All">🔄</button>
+        <button id="theme-toggle" class="neumo-btn" title="Toggle Theme">🌙</button>
+      </div>
     </header>
 
     <!-- Counters -->
-    <section class="grid grid-cols-2 gap-6">
+    <section class="grid grid-cols-3 gap-6">
       <div class="glass-card flex flex-col rounded-3xl bg-blue-100/20">
         <p class="text-sm font-medium text-gray-600 mb-1">Players Online</p>
         <p id="players-count" class="text-5xl font-extrabold text-gray-900">--</p>
@@ -58,6 +102,10 @@
       <div class="glass-card flex flex-col rounded-3xl bg-yellow-100/20">
         <p class="text-sm font-medium text-gray-600 mb-1">Total Economy</p>
         <p id="economy-total" class="text-5xl font-extrabold text-gray-900">--</p>
+      </div>
+      <div class="glass-card flex flex-col rounded-3xl bg-pink-100/20">
+        <p class="text-sm font-medium text-gray-600 mb-1">Droppers For Sale</p>
+        <p id="droppers-count" class="text-5xl font-extrabold text-gray-900">--</p>
       </div>
     </section>
 
@@ -73,6 +121,7 @@
         <h2 class="text-2xl font-semibold text-gray-800">My Dropper Auctions</h2>
         <button id="refresh-auctions" class="neumo-btn text-lg">⟳</button>
       </div>
+      <input id="auction-search" type="text" placeholder="Search Auctions..." class="w-full mb-4 p-2 rounded-lg bg-white/60 text-gray-800 focus:outline-none" />
       <div class="overflow-x-auto">
         <table class="w-full table-auto text-left">
           <thead>
@@ -83,6 +132,33 @@
             </tr>
           </thead>
           <tbody id="auction-table-body" class="text-gray-800">
+            <tr><td colspan="3" class="px-4 py-2 text-center">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Leaderboard Section -->
+    <section class="glass-card rounded-3xl bg-teal-100/20 p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-2xl font-semibold text-gray-800">Leaderboard</h2>
+        <select id="lb-type" class="neumo-btn bg-white/60 hover:bg-white/80 text-gray-700">
+          <option value="kills">Kills</option>
+          <option value="deaths">Deaths</option>
+          <option value="blocks-mined">Blocks Mined</option>
+        </select>
+      </div>
+      <input id="leaderboard-search" type="text" placeholder="Search Leaderboard..." class="w-full mb-4 p-2 rounded-lg bg-white/60 text-gray-800 focus:outline-none" />
+      <div class="overflow-x-auto">
+        <table id="lb-table" class="w-full table-auto text-left">
+          <thead>
+            <tr class="text-gray-600 uppercase text-sm">
+              <th class="px-4 py-2">Rank</th>
+              <th class="px-4 py-2">Player</th>
+              <th class="px-4 py-2">Value</th>
+            </tr>
+          </thead>
+          <tbody id="leaderboard-body" class="text-gray-800">
             <tr><td colspan="3" class="px-4 py-2 text-center">Loading…</td></tr>
           </tbody>
         </table>
@@ -125,6 +201,25 @@
     }
     updateCounters();
     setInterval(updateCounters, 60000);
+
+    // ─── New: Update Droppers For Sale Counter ───────────
+    async function updateDroppersCount() {
+      try {
+        let page = 1;
+        let droppersTotal = 0;
+        while (true) {
+          const data = await fetchJSON(`${API_BASE}/${page}`);
+          if (!data.auctions.length) break;
+          droppersTotal += data.auctions.filter(a => a.item.toLowerCase() === "dropper").length;
+          page++;
+        }
+        document.getElementById("droppers-count").textContent = droppersTotal;
+      } catch (err) {
+        console.error("Droppers count error:", err);
+      }
+    }
+    updateDroppersCount();
+    setInterval(updateDroppersCount, 90000);
 
     // ─── 2. Players Online Chart ───────────────────────────
     const ctx = document.getElementById("playerChart").getContext("2d");
@@ -185,8 +280,68 @@
     setInterval(updateAuctions, 90000);
 
     // ─── 4. Manual Refresh Buttons ─────────────────────────
-    document.getElementById("refresh-all").onclick = () => { updateCounters(); pollChart(); updateAuctions(); };
+    document.getElementById("refresh-all").onclick = () => { updateCounters(); pollChart(); updateAuctions(); updateDroppersCount(); };
     document.getElementById("refresh-auctions").onclick = updateAuctions;
+
+    // ─── 5. Leaderboard Section ─────────────────────────────
+    const LB_BASE = "https://api.donutsmp.net/v1/leaderboards/";
+    async function updateLeaderboard(type) {
+      const body = document.getElementById("leaderboard-body");
+      body.innerHTML = `<tr><td colspan="3" class="px-4 py-2 text-center">Loading…</td></tr>`;
+      try {
+        const data = await fetchJSON(LB_BASE + type);
+        body.innerHTML = data.map((entry, idx) => `
+          <tr class="border-b border-gray-200">
+            <td class="px-4 py-2">${idx + 1}</td>
+            <td class="px-4 py-2">${entry.ign || entry.name || entry.player}</td>
+            <td class="px-4 py-2">${entry.value.toLocaleString()}</td>
+          </tr>
+        `).join("");
+      } catch (err) {
+        body.innerHTML = `<tr><td colspan="3" class="px-4 py-2 text-center text-red-500">Error loading leaderboard</td></tr>`;
+        console.error("Leaderboard error:", err);
+      }
+    }
+    document.getElementById("lb-type").onchange = e => updateLeaderboard(e.target.value);
+    updateLeaderboard(document.getElementById("lb-type").value);
+
+    // ─── 6. Theme Toggle ───────────────────────────────────
+    const themeToggle = document.getElementById('theme-toggle');
+    themeToggle.onclick = () => {
+      document.documentElement.classList.toggle('dark');
+      themeToggle.textContent = document.documentElement.classList.contains('dark') ? '☀️' : '🌙';
+    };
+
+    // ─── 7. Search Filtering ───────────────────────────────
+    document.getElementById('auction-search').oninput = e => {
+      const q = e.target.value.toLowerCase();
+      document.querySelectorAll('#auction-table-body tr').forEach(tr => {
+        tr.style.display = tr.textContent.toLowerCase().includes(q) ? '' : 'none';
+      });
+    };
+    document.getElementById('leaderboard-search').oninput = e => {
+      const q = e.target.value.toLowerCase();
+      document.querySelectorAll('#leaderboard-body tr').forEach(tr => {
+        tr.style.display = tr.textContent.toLowerCase().includes(q) ? '' : 'none';
+      });
+    };
+
+    // ─── New: Calculate Total Economy ───────────────────────
+    async function calculateTotalEconomy() {
+      console.log('Fetching total economy...');
+      try {
+        const response = await axios.get(
+          "https://api.donutsmp.net/v1/economy/total",
+          { headers: { Authorization: `Bearer ${API_KEY}` } }
+        );
+        const totalEconomy = response.data.total;
+        console.log(`Total DonutSMP Economy: $${totalEconomy.toLocaleString()}`);
+        return totalEconomy;
+      } catch (error) {
+        console.error(`Error fetching economy: ${error.message}`);
+      }
+    }
+    calculateTotalEconomy();
   </script>
 </body>
 </html>
